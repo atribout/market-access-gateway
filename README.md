@@ -27,7 +27,7 @@ The application uses a **Thread-Per-Core** architecture with **Kernel Isolation*
 
 ## Performance: The Impact of Kernel Tuning
 
-End-to-end latency (Wire-to-Trade) measured on AMD Ryzen 5 5600X (Rocky Linux 9.7).
+Matching Engine Processing Latency measured on AMD Ryzen 5 5600X (Rocky Linux 9.7).
 
 | Configuration | Median (p50) | Tail Latency (p99) | Worst Case (Max) | Verdict |
 | :--- | :--- | :--- | :--- | :--- |
