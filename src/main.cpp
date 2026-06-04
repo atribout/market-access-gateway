@@ -9,12 +9,12 @@
 #include "OrderBook.h"
 #include "Order.h"
 #include "Listeners.h"
-#include "include/Messages.h"
-#include "include/NetworkProducer.h"
-#include "include/RingBuffer.h"
-#include "include/TSCClock.h"
-#include "include/Receivers.h"
-#include "include/SimParser.h"
+#include "Messages.h"
+#include "RingBuffer.h"
+#include "TSCClock.h"
+#include "net/NetworkProducer.h"
+#include "net/Receivers.h"
+#include "net/SimParser.h"
 
 constexpr size_t BUFFER_SIZE = 4096;
 RingBuffer<QueueItem, BUFFER_SIZE> ringBuffer;

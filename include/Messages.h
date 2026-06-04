@@ -12,8 +12,8 @@ struct alignas(32) QueueItem
 {
     uint64_t seqNum;
     uint64_t id;
-    int32_t price;     // Ignored if type == CancelOrder
-    uint32_t quantity; // Ignored if type == CancelOrder
+    int32_t price;
+    uint32_t quantity;
     MsgType type;
-    char side;         // Ignored if type == CancelOrder
+    char side;
 };

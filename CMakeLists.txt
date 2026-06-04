@@ -21,6 +21,8 @@ FetchContent_MakeAvailable(lob_core)
 
 find_package(Threads REQUIRED)
 
-add_executable(feed_handler main.cpp)
+add_executable(feed_handler src/main.cpp)
+
+target_include_directories(feed_handler PRIVATE include)
 
 target_link_libraries(feed_handler PRIVATE lob_core Threads::Threads)

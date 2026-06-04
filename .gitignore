@@ -5,3 +5,4 @@ feed_handler
 build/
 .vscode/
 __pycach__/
+.clangd
