@@ -9,7 +9,7 @@ MCAST_PORT = 1234
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
 
 # Keep track of live orders to enable cancellations
-live_orders = [] 
+live_orders = {} 
 current_price = 10000 # Price in cents (100.00)
 order_id_counter = 1
 seq_num = 1
@@ -26,8 +26,12 @@ try:
             if current_price < 100: current_price = 100 # Price floor
 
             msg_type = b'A'
-            if len(live_orders) > 0 and random.random() < 0.2:
-                msg_type = b'C'
+            if len(live_orders) > 0:
+                rand_val = random.random()
+                if rand_val < 0.15:
+                    msg_type = b'C' # 15% Cancel
+                elif rand_val < 0.35:
+                    msg_type = b'E' # 20% Execute
             
             packet = None
             
@@ -36,20 +40,31 @@ try:
                 side = b'B' if random.random() > 0.5 else b'S'
                 
                 packet = struct.pack('=QcQiIc', seq_num, b'A', order_id_counter, current_price, qty, side)
-                
-                live_orders.append(order_id_counter)
+                live_orders[order_id_counter] = qty
                 order_id_counter += 1
                 
-            else:
-                target_id = random.choice(live_orders)
-                live_orders.remove(target_id)
+            elif msg_type == b'C':
+                target_id = random.choice(list(live_orders.keys()))
+                del live_orders[target_id]
                 
                 packet = struct.pack('=QcQ', seq_num, b'C', target_id)
+
+            elif msg_type == b'E':
+                target_id = random.choice(list(live_orders.keys()))
+                remaining_qty = live_orders[target_id]
+
+                exec_qty = random.randint(1, remaining_qty)
+                live_orders[target_id] -= exec_qty
+
+                if live_orders[target_id] <= 0:
+                    del live_orders[target_id]
+
+                packet = struct.pack('=QcQI', seq_num, b'E', target_id, exec_qty)
 
             sock.sendto(packet, (MCAST_GRP, MCAST_PORT))
             seq_num += 1
 
-        # --- 4. PAUSE BETWEEN BURSTS ---
+        # --- PAUSE BETWEEN BURSTS ---
         # Sleep briefly (1ms to 10ms) to let the C++ consumer catch up
         # This creates the "sawtooth" pattern
         time.sleep(random.uniform(0.001, 0.010)) 

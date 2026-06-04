@@ -30,6 +30,15 @@ public:
             ringBuffer.publish();
             return true;
         }
+        else if (header->type == MsgType::ExecutedOrder && len >= sizeof(Sim::ExecutedOrderMsg))  {
+            const Sim::ExecutedOrderMsg* msg = reinterpret_cast<const Sim::ExecutedOrderMsg*>(packet_ptr);
+            slot->type = MsgType::ExecutedOrder;
+            slot->seqNum = header->seqNum;
+            slot->id = msg->id;
+            slot->quantity = msg->quantity;
+            ringBuffer.publish();
+            return true;
+        }
 
         return false; //Unknown type or corrupted packet
     }

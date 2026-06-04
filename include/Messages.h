@@ -5,6 +5,7 @@ enum class MsgType : uint8_t
 {
     AddOrder = 'A',
     CancelOrder = 'C',
+    ExecutedOrder = 'E'
 };
 
 struct alignas(32) QueueItem

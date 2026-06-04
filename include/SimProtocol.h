@@ -27,6 +27,13 @@ namespace Sim {
         uint64_t id;
     };
 
+    struct ExecutedOrderMsg
+    {
+        PacketHeader header;
+        uint64_t id;
+        uint32_t quantity;
+    };
+
     #pragma pack(pop)
 
 } // namespace Sim

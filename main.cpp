@@ -70,6 +70,10 @@ void consumer_thread()
             else if (item->type == MsgType::CancelOrder) {
                 lob.cancelOrder(item->id);
             }
+            else if (item->type == MsgType::ExecutedOrder) {
+                std::println("Order executed: id = {}, quantity = {}", item->id, item->quantity);
+                // lob.executedOrder(item->id, item->quantity);
+            }
             // -----------------------------------------
 
             end_cycles = __rdtscp(&dummy);
