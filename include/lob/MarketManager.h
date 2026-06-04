@@ -17,9 +17,9 @@ concept TradeListenerConcept = requires(T t, uint16_t inst, uint64_t id, int32_t
 template<TradeListenerConcept ListenerT>
 class MarketManager {
 private:
-    static constexpr size_t MAX_INSTRUMENTS = 8192;
-    static constexpr size_t MAX_LIVE_ORDERS = 20'000'000; 
-    static constexpr size_t MAX_ORDER_IDS = 100'000'000;
+    static constexpr size_t MAX_INSTRUMENTS = 64;
+    static constexpr size_t MAX_LIVE_ORDERS = 1'000'000; 
+    static constexpr size_t MAX_ORDER_IDS = 10'000'000;
 
     OrderPool pool;
     std::vector<int32_t> orderIndexLookup;
