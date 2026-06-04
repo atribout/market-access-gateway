@@ -6,41 +6,36 @@
 class OrderPool {
 private:
     std::vector<Order> store;
-    std::vector<int32_t> freeList;
+    int32_t freeHead;
 
 public:
-    explicit OrderPool(size_t size)
-    {
-        store.resize(size);
-        for(int32_t i = size-1; i>=0; --i)
-        {
-            freeList.push_back(i);
+    explicit OrderPool(size_t size) : store(size) {
+        for(size_t i = 0; i < size - 1; ++i) {
+            store[i].next = static_cast<int32_t> (i + 1);
         }
+        store [size - 1].next = -1;
+
+        freeHead= 0;
     }
 
     template<typename... Args>
-    int32_t allocate(Args&&... args)
-    {
-        if (freeList.empty()) return -1;
+    int32_t allocate(Args&&... args) {
+        if (freeHead == -1) [[unlikely]] return -1;
 
-        int32_t idx = freeList.back();
-        freeList.pop_back();
+        int32_t idx = freeHead;
+        freeHead = store[idx].next;
 
         new (&store[idx]) Order(std::forward<Args>(args)...);
-
-        store[idx].prev = -1;
-        store[idx].next = -1;
 
         return idx;
     }
 
-    void deallocate(int32_t idx)
-    {
-        freeList.push_back(idx);
+    void deallocate(int32_t idx) {
+        store[idx].next = freeHead;
+        freeHead = idx;
     }
 
-    Order& get(int32_t idx)
-    {
+    inline Order& get(int32_t idx) {
         return store[idx];
     }
 };
