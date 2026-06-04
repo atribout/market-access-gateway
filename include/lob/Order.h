@@ -1,28 +1,26 @@
 #pragma once
 #include <cstdint>
 #include <iostream>
-
-enum class Side {
-    Buy,
-    Sell
-};
+#include "Messages.h"
 
 struct Order {
     uint64_t id;
     int32_t price;
     uint32_t quantity;
-    Side side;
 
     int32_t prev = -1;
     int32_t next = -1;
 
+    uint16_t instrumentId;
+    Side side;
+
     Order() = default;
 
-    Order(uint64_t id, int32_t price, uint32_t quantity, Side side)
-        : id(id), price(price), quantity(quantity), side(side) {}
+    Order(uint64_t id, int32_t price, uint32_t quantity, Side side, uint16_t instId)
+        : id(id), price(price), quantity(quantity), prev(-1), next (-1), instrumentId(instId), side(side) {}
 
     friend std::ostream& operator<<(std::ostream& os, const Order& order) {
-        return os << "Order[" << order.id << "] " 
+        return os << "Instrument " << order.instrumentId << " : "<< "Order[" << order.id << "] " 
                   << (order.side == Side::Buy ? "BUY" : "SELL") << " "
                   << order.quantity << " @ " << order.price;
     }

@@ -13,27 +13,30 @@ public:
 
         if (header->type == MsgType::AddOrder && len >= sizeof(Sim::AddOrderMsg)) {
             const Sim::AddOrderMsg* msg = reinterpret_cast<const Sim::AddOrderMsg*>(packet_ptr);
-            slot->type = MsgType::AddOrder;
             slot->seqNum = std::byteswap(header->seqNum);
             slot->id = std::byteswap(msg->id);
             slot->price = std::byteswap(msg->price);
             slot->quantity = std::byteswap(msg->quantity);
-            slot->side = std::byteswap(msg->side);
+            slot->instrumentId = std::byteswap(header->instrumentId);
+            slot->type = MsgType::AddOrder;
+            slot->side = (msg->side == 'B') ? Side::Buy : Side::Sell;
             return true;
         }
         else if (header->type == MsgType::CancelOrder && len >= sizeof(Sim::CancelOrderMsg))  {
             const Sim::CancelOrderMsg* msg = reinterpret_cast<const Sim::CancelOrderMsg*>(packet_ptr);
-            slot->type = MsgType::CancelOrder;
             slot->seqNum = std::byteswap(header->seqNum);
             slot->id = std::byteswap(msg->id);
+            slot->instrumentId = std::byteswap(header->instrumentId);
+            slot->type = MsgType::CancelOrder;
             return true;
         }
         else if (header->type == MsgType::ExecutedOrder && len >= sizeof(Sim::ExecutedOrderMsg))  {
             const Sim::ExecutedOrderMsg* msg = reinterpret_cast<const Sim::ExecutedOrderMsg*>(packet_ptr);
-            slot->type = MsgType::ExecutedOrder;
             slot->seqNum = std::byteswap(header->seqNum);
             slot->id = std::byteswap(msg->id);
             slot->quantity = std::byteswap(msg->quantity);
+            slot->instrumentId = std::byteswap(header->instrumentId);
+            slot->type = MsgType::ExecutedOrder;
             return true;
         }
 

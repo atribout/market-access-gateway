@@ -1,3 +1,4 @@
+#pragma once
 #include <cstdint>
 #include <vector>
 #include <print>
@@ -5,95 +6,106 @@
 
 struct ConsoleListener 
 {
-    void onOrderAdded(uint64_t id, int32_t price, uint32_t qty, Side side) 
+    void onOrderAdded(uint16_t instrId, uint64_t id, int32_t price, uint32_t qty, Side side) 
     {
-        std::println("[ORDER] New {} {} @ {} (ID: {})", 
-                     (side == Side::Buy ? "Buy" : "Sell"), qty, price, id);
+        std::println("[INSTR {}] [ORDER] New {} {} @ {} (ID: {})", 
+                     instrId, (side == Side::Buy ? "Buy" : "Sell"), qty, price, id);
     }
 
-    void onOrderCancelled(uint64_t id) 
+    void onOrderCancelled(uint16_t instrId, uint64_t id) 
     {
-        std::println("[CANCEL] Order {} removed", id);
+        std::println("[INSTR {}] [CANCEL] Order {} removed", instrId, id);
     }
 
-    void onOrderExecuted(uint64_t id, uint32_t qty) {
-        std::println("[EXEC] Order {} passively executed for {} lots", id, qty);
+    void onOrderExecuted(uint16_t instrId, uint64_t id, uint32_t qty) {
+        std::println("[INSTR {}] [EXEC] Order {} passively executed for {} lots", instrId, id, qty);
     }
 
-    void onOrderRejected(uint64_t id, RejectReason reason)
+    void onOrderRejected(uint16_t instrId, uint64_t id, RejectReason reason)
     {
-        std::println("[REJ] Order {} rejected (Reason: {})", id, static_cast<int>(reason));
+        std::println("[INSTR {}] [REJ] Order {} rejected (Reason: {})", instrId, id, static_cast<int>(reason));
     }
 
-    void onTrade(uint64_t aggId, uint64_t passId, int32_t price, uint32_t qty) 
+    void onTrade(uint16_t instrId, uint64_t aggId, uint64_t passId, int32_t price, uint32_t qty) 
     {
-        std::println(">>> TRADE EXECUTE: {}@{} (Aggressor: {}, Passive: {})", 
-                     qty, price, aggId, passId);
+        std::println("[INSTR {}] >>> TRADE EXECUTE: {}@{} (Aggressor: {}, Passive: {})", 
+                     instrId, qty, price, aggId, passId);
     }
 
     // --- PUBLIC FLOW ---
-    void onOrderBookUpdate(int32_t price, uint32_t volume, Side side)
+    void onOrderBookUpdate(uint16_t instrId, int32_t price, uint32_t volume, Side side)
     {
-        std::println("[MKT DATA] Price Level {} ({}) is now {}", 
-                     price, (side == Side::Buy ? "Bid" : "Ask"), volume);
+        std::println("[INSTR {}] [MKT DATA] Price Level {} ({}) is now {}", 
+                     instrId, price, (side == Side::Buy ? "Bid" : "Ask"), volume);
     }
 };
 
 struct EmptyListener
 {
-    void onOrderAdded(uint64_t, int32_t, uint32_t, Side) {}
+    void onOrderAdded(uint16_t, uint64_t, int32_t, uint32_t, Side) {}
 
-    void onOrderCancelled(uint64_t) {}
+    void onOrderCancelled(uint16_t, uint64_t) {}
 
-    void onOrderExecuted(uint64_t, uint32_t) {}
+    void onOrderExecuted(uint16_t, uint64_t, uint32_t) {}
 
-    void onOrderRejected(uint64_t, RejectReason) {}
+    void onOrderRejected(uint16_t, uint64_t, RejectReason) {}
 
-    void onTrade(uint64_t, uint64_t, int32_t, uint32_t) {}
+    void onTrade(uint16_t, uint64_t, uint64_t, int32_t, uint32_t) {}
 
-    void onOrderBookUpdate(int32_t, uint32_t, Side) {}
+    void onOrderBookUpdate(uint16_t, int32_t, uint32_t, Side) {}
 };
 
 struct VectorListener {
     struct TradeInfo 
     { 
+        uint16_t instrId;
         uint64_t aggId;
         uint64_t passId;
         int32_t price;
         uint32_t qty; 
     };
 
+    struct OrderRef 
+    {
+        uint16_t instrId;
+        uint64_t id;
+    };
+
+    struct RejectInfo 
+    {
+        uint16_t instrId;
+        uint64_t id;
+        RejectReason reason;
+    };
+
     std::vector<TradeInfo> trades;
-    std::vector<uint64_t> cancelledIds;
-    std::vector<uint64_t> rejectedIds;
-    std::vector<RejectReason> rejectReasons;
+    std::vector<OrderRef> cancelledOrders;
+    std::vector<RejectInfo> rejectedOrders;
 
-    void onTrade(uint64_t aggId, uint64_t passId, int32_t price, uint32_t qty) 
+    void onTrade(uint16_t instrId, uint64_t aggId, uint64_t passId, int32_t price, uint32_t qty) 
     {
-        trades.push_back({aggId, passId, price, qty});
+        trades.push_back({instrId, aggId, passId, price, qty});
     }
 
-    void onOrderCancelled(uint64_t id) 
+    void onOrderCancelled(uint16_t instrId, uint64_t id) 
     {
-        cancelledIds.push_back(id);
+        cancelledOrders.push_back({instrId, id});
     }
 
-    void onOrderExecuted(uint64_t id, uint32_t qty) {}
+    void onOrderExecuted(uint16_t instrId, uint64_t id, uint32_t qty) {}
 
-    void onOrderRejected(uint64_t id, RejectReason reason) 
+    void onOrderRejected(uint16_t instrId, uint64_t id, RejectReason reason) 
     {
-        rejectedIds.push_back(id);
-        rejectReasons.push_back(reason);
+        rejectedOrders.push_back({instrId, id, reason});
     }
     
-    void onOrderAdded(uint64_t, int32_t, uint32_t, Side) {}
-    void onOrderBookUpdate(int32_t, uint32_t, Side) {}
+    void onOrderAdded(uint16_t, uint64_t, int32_t, uint32_t, Side) {}
+    void onOrderBookUpdate(uint16_t, int32_t, uint32_t, Side) {}
 
     void clear() 
     {
         trades.clear();
-        cancelledIds.clear();
-        rejectedIds.clear();
-        rejectReasons.clear();
+        cancelledOrders.clear();
+        rejectedOrders.clear();
     }
 };

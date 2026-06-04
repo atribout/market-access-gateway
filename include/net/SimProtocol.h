@@ -9,6 +9,7 @@ namespace Sim {
     struct PacketHeader
     {
         uint64_t seqNum;
+        uint16_t instrumentId;
         MsgType type; // 'A' (Add), 'C' (Cancel), 'E' (Executed)
     };
 

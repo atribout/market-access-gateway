@@ -7,8 +7,7 @@
 #include <immintrin.h>
 
 #include "lob/Listeners.h"
-#include "lob/Order.h"
-#include "lob/PassiveOrderBook.h"
+#include "lob/MarketManager.h"
 #include "net/NetworkProducer.h"
 #include "net/Receivers.h"
 #include "net/SimParser.h"
@@ -27,7 +26,7 @@ void consumer_thread()
     std::println("Engine started (waiting for data)...");
 
     EmptyListener listener;
-    PassiveOrderBook<EmptyListener> lob(listener);
+    MarketManager<EmptyListener> market(listener);
 
     // We store the latencies to print the percentiles later
     std::vector<uint64_t> samples;
@@ -63,14 +62,13 @@ void consumer_thread()
             start_cycles = __rdtscp(&dummy);
             // --- CRITICAL ZONE ---
             if(item->type == MsgType::AddOrder) {
-                Side side = (item->side == 'B') ? Side::Buy : Side::Sell;
-                lob.onAddOrder(item->id, item->price, item->quantity, side);
+                market.onAddOrder(item->instrumentId, item->id, item->price, item->quantity, item->side);
             }
             else if (item->type == MsgType::CancelOrder) {
-                lob.onCancelOrder(item->id);
+                market.onCancelOrder(item->id);
             }
             else if (item->type == MsgType::ExecutedOrder) {
-                lob.onOrderExecuted(item->id, item->quantity);
+                market.onOrderExecuted(item->id, item->quantity);
             }
             // -----------------------------------------
 
