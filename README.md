@@ -1,90 +1,44 @@
-# HFT UDP Feed Handler & Matching Engine
+# Ultra-Low Latency Market Access Gateway & Passive LOB
 
 ![C++](https://img.shields.io/badge/std-c%2B%2B20-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Architecture](https://img.shields.io/badge/architecture-lock--free-orange)
-![Optimisation](https://img.shields.io/badge/kernel-isolation-red)
-![Jitter](https://img.shields.io/badge/jitter-%3C1%C2%B5s-brightgreen)
+![Performance](https://img.shields.io/badge/latency-16.2ns-brightgreen)
+![Zero Dependencies](https://img.shields.io/badge/dependencies-none-success)
 
-A complete trading system simulation consuming UDP market data, processing orders via a Lock-Free Ring Buffer, and executing trades with deterministic latency.
+This system consumes raw UDP multicast market data, multiplexes multiple instruments in $\mathcal{O}(1)$, and maintains deterministic passive Limit Order Books (LOB) to feed trading algorithms.
 
-## System Architecture
+Built from scratch with strict **Hardware Sympathy** and zero external dependencies.
 
-The application uses a **Thread-Per-Core** architecture with **Kernel Isolation** to eliminate OS jitter and context switching:
+## Architectural Feats & C++ Optimizations
 
-1.  **Network Thread (Producer - Core 4):**
-    * Uses `recvmmsg` for batch packet reception (reducing syscall overhead).
-    * Parses raw binary packets (Wire Format).
-    * Writes to a Lock-Free Ring Buffer using a **Zero-Copy Claim/Publish** pattern.
-    
-2.  **Engine Thread (Consumer - Core 5):**
-    * **Isolated Core:** Running on a dedicated CPU core (`isolcpus=5`) with `nohz_full` and `rcu_nocbs` to prevent scheduler ticks and interrupts.
-    * Polls the Ring Buffer.
-    * Updates the Limit Order Book (LOB).
-    * Logs execution stats (p50, p99, Max).
+* **Intrusive Free List (Zero-Allocation):** The custom `OrderPool` eliminates the `std::vector` overhead for tracking free memory. Deallocated orders recycle their `next` pointer to chain themselves into the free list, achieving $\mathcal{O}(1)$ allocation/deallocation in ~2 CPU cycles.
+* **Cache-Line Alignment:** Internal structures like `QueueItem` and `Order` are stripped of padding and aligned with `alignas(32)` to fit exactly half an L1 Cache Line (64 bytes), completely preventing false sharing.
+* **O(1) Flat Array Routing:** Tickers and strings are eliminated. The `MarketManager` uses Exchange *Locate Codes* (`instrumentId`) to directly address a pre-allocated array of `PassiveOrderBook`s. 
+* **Lock-Free Transport:** Cross-thread communication relies exclusively on a Single-Producer Single-Consumer (SPSC) Ring Buffer using a Zero-Copy Claim/Publish pattern.
+* **Kernel Isolation:** OS jitter is eliminated by pinning threads to isolated cores (`isolcpus=5`, `nohz_full`, `rcu_nocbs`).
 
+## Performance Metrics
 
+*Hardware Environment: Intel(R) Core(TM) Ultra 9 275HX | OS: Rocky Linux 10 (Isolated Kernel)*
 
-## Performance: The Impact of Kernel Tuning
+### Latency Distribution
+The graph below illustrates the **Gateway Processing Latency** (time elapsed between reading the parsed `QueueItem` and fully updating the multiplexed LOB and Top of Book).
 
-Matching Engine Processing Latency measured on AMD Ryzen 5 5600X (Rocky Linux 9.7).
+![Gateway Processing Latency Distribution](latency_histogram.png)
 
-| Configuration | Median (p50) | Tail Latency (p99) | Worst Case (Max) | Verdict |
-| :--- | :--- | :--- | :--- | :--- |
-| **1. Standard (STL)** | 70 ns | ~300 ns | **792,000 ns** | Unusable for HFT |
-| **2. Optimized Software** | 30 ns | ~100 ns | **2,200 ns** | Fast, but noisy |
-| **3. Thread Pinning** | 30 ns | ~100 ns | **418,000 ns** | Pinning != Isolation |
-| **4. Full Kernel Isolation** | **20 ns** | **60 ns** | **670 ns** | **Production Ready** |
+## System Pipeline
 
-> **Key Findings:**
-> * **Median:** Software optimization (Object Pool/Vector) drove the median down to **20ns**.
-> * **Tail Latency (p99):** Kernel Isolation stabilized the p99 at **60ns**, meaning 99% of orders are processed in under 220 CPU cycles.
-> * **Jitter (Max):** Only full isolation eliminated the scheduler spikes, reducing the worst-case scenario from >400µs to **0.6µs**.
-
-## Kernel Configuration
-
-To reproduce the "Production Ready" results, the Linux kernel must be booted with isolation parameters to silence the OS on specific cores:
-
-```bash
-# Example for isolating cores 4 and 5
-grubby --update-kernel=ALL --args="isolcpus=4,5 nohz_full=4,5 rcu_nocbs=4,5"
-```
-* `isolcpus`: Removes cores from the general SMP balancing and scheduler algorithms.
-* `nohz_full`: Stops the scheduling-clock tick on the isolated cores (adaptive ticks).
-* `rcu_nocbs`: Offloads RCU callbacks to other CPUs.
-
-## Dependencies
-
-- **LOB Core**: Automatically fetched via CMake from limit-order-book.
-- **Google Test**: For unit testing.
+1. **Network Thread (Producer - Core 4):** Uses `recvmmsg` to batch-receive UDP packets, parses Big-Endian wire formats, and writes to the Lock-Free Ring Buffer.
+2. **Engine Thread (Consumer - Core 5):** Polls the Ring Buffer.
+3. **MarketManager:** Routes the event to the correct instrument book in $\mathcal{O}(1)$.
+4. **PassiveOrderBook:** Blindly applies network states (Add/Cancel/Execute) to mirror the exchange and maintains the BBO (Best Bid & Offer).
 
 ## Build & Run
 
-### Build
+**Zero dependencies.** Standard library only.
+
 ```bash
 mkdir build && cd build
 cmake ..
 make -j$(nproc)
-```
-
-### Run simulation
-
-1. **Start the Engine:**
-
-```bash
-./feed_handler 
-```
-
-2. **Start the Market Simulator (in another terminal):**
-
-```bash
-python3 market_sim.py
-```
-
-## Protocol
-
-The system accepts binary messages (Little Endian, Packed):
-
-- **Add Order ('A'):** `[Type:1][ID:8][Price:4][Qty:4][Side:1]`
-
-- **Cancel Order ('C'):** `[Type:1][ID:8]`
