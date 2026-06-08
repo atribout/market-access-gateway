@@ -11,8 +11,8 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
 NUM_INSTRUMENTS = 5
 
 # Keep track of live orders to enable cancellations
-live_orders = {i: {} for i in range(1, NUM_INSTRUMENTS + 1)} 
-current_prices = {i: random.randint(5000, 15000) for i in range(1, NUM_INSTRUMENTS + 1)} # Price in cents (100.00)
+live_orders = {i: {} for i in range(0, NUM_INSTRUMENTS)} 
+current_prices = {i: random.randint(5000, 15000) for i in range(0, NUM_INSTRUMENTS)} # Price in cents (100.00)
 
 order_id_counter = 1
 seq_num = 1
@@ -24,7 +24,7 @@ try:
         burst_size = random.randint(10, 100)
         
         for _ in range(burst_size):
-            instr_id = random.randint(1, NUM_INSTRUMENTS)
+            instr_id = random.randint(0, NUM_INSTRUMENTS - 1)
 
             move = random.choices([-5, 0, 5], weights=[0.3, 0.4, 0.3])[0]
             current_prices[instr_id] += move
