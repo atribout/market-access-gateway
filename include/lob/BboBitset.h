@@ -1,84 +1,92 @@
 #pragma once
 #include <cstdint>
 #include <bit>
+#include <array>
+#include <cstddef>
 
 class BboBitset {
 private:
-    static constexpr int MAX_PRICE = 100000;
-    static constexpr int L0_SIZE = (MAX_PRICE / 64) + 1;
-    static constexpr int L1_SIZE = (L0_SIZE / 64) + 1;
+    static constexpr int32_t MAX_PRICE{100000};
 
-    uint64_t root = 0;
-    uint64_t l1[L1_SIZE] = {0};
-    uint64_t l0[L0_SIZE] = {0};
+    static constexpr size_t L0_SIZE = (MAX_PRICE / 64) + 1;
+    static constexpr size_t L1_SIZE = (L0_SIZE / 64) + 1;
 
-    constexpr int highestBit(uint64_t mask) const noexcept {
-        return std::bit_width(mask) - 1;
+    uint64_t root{0ULL};
+
+    std::array<uint64_t, L1_SIZE> l1{};
+    std::array<uint64_t, L0_SIZE> l0{};
+
+    constexpr int32_t highestBit(uint64_t mask) const noexcept {
+        return static_cast<int32_t>(std::bit_width(mask)) - 1;
     }
 
-    constexpr int lowestBit(uint64_t mask) const noexcept {
-        return std::countr_zero(mask);
+    constexpr int32_t lowestBit(uint64_t mask) const noexcept {
+        return static_cast<int32_t>(std::countr_zero(mask));
     }
 
 public:
-    void setPrice(int price) {
-        int i0 = price / 64;
-        int b0 = price % 64;
-        
-        if ((l0[i0] & (1ULL << b0)) == 0) {
-            l0[i0] |= (1ULL << b0);
-            
-            if (l0[i0] == (1ULL << b0)) {
-                int i1 = i0 / 64;
-                int b1 = i0 % 64;
-                
-                if ((l1[i1] & (1ULL << b1)) == 0) {
-                    l1[i1] |= (1ULL << b1);
-                    
-                    if (l1[i1] == (1ULL << b1)) {
-                        root |= (1ULL << i1);
+    void setPrice(int32_t price) {
+        auto u_price = static_cast<uint32_t>(price);
+
+        auto i0 = u_price / 64;
+        auto b0 = u_price & 63;
+
+        uint64_t bit0 = UINT64_C(1) << b0;
+
+        if (!(l0[i0] & bit0)) {
+            l0[i0] |= bit0;
+
+            if (l0[i0] == bit0) {
+                auto i1 = i0 / 64;
+                auto b1 = i0 & 63;
+
+                uint64_t bit1 = UINT64_C(1) << b1;
+                if (!(l1[i1] & bit1)) {
+                    l1[i1] |= bit1;
+                    if (l1[i1] == bit1) {
+                        root |= (UINT64_C(1) << i1);
                     }
                 }
             }
         }
     }
 
-    void clearPrice(int price) {
-        int i0 = price / 64;
-        int b0 = price % 64;
+    void clearPrice(int32_t price) {
+        auto u_price = static_cast<uint32_t>(price);
+
+        auto i0 = u_price / 64;
+        auto b0 = u_price & 63;
+        auto bit0 = UINT64_C(1) << b0;
         
-        l0[i0] &= ~(1ULL << b0);
-        
+        l0[i0] &= ~bit0;
+
         if (l0[i0] == 0) {
-            int i1 = i0 / 64;
-            int b1 = i0 % 64;
-            l1[i1] &= ~(1ULL << b1);
-            
+            auto i1 = i0 / 64;
+            auto b1 = i0 & 63;
+            auto bit1 = UINT64_C(1) << b1;
+
+            l1[i1] &= ~bit1;
             if (l1[i1] == 0) {
-                root &= ~(1ULL << i1);
+                root &= ~(UINT64_C(1) << i1);
             }
         }
     }
 
-    int getBestBid() const {
-        if (root == 0) [[unlikely]] return 0;
-        
-        int r_bit = highestBit(root);
-        int l1_bit = highestBit(l1[r_bit]);
-        int i0 = (r_bit * 64) + l1_bit;
-        int l0_bit = highestBit(l0[i0]);
-        
-        return (i0 * 64) + l0_bit;
+    int32_t getBestBid() const {
+        if(!root) [[unlikely]] return 0;
+
+        auto i1 = highestBit(root);
+        auto i0 = i1 * 64 + highestBit(l1[i1]);
+
+        return i0 * 64 + highestBit(l0[i0]);
     }
 
-    int getBestAsk() const {
-        if (root == 0) [[unlikely]] return MAX_PRICE;
-        
-        int r_bit = lowestBit(root);
-        int l1_bit = lowestBit(l1[r_bit]);
-        int i0 = (r_bit * 64) + l1_bit;
-        int l0_bit = lowestBit(l0[i0]);
-        
-        return (i0 * 64) + l0_bit;
+    int32_t getBestAsk() const {
+        if(!root) [[unlikely]] return MAX_PRICE;
+
+        auto i1 = lowestBit(root);
+        auto i0 = i1 * 64 + lowestBit(l1[i1]);
+
+        return i0 * 64 + lowestBit(l0[i0]);
     }
 };
