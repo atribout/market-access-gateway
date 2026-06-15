@@ -23,10 +23,9 @@ public:
         std::println("Network thread listening...");
 
         while (running) {
-            size_t len = 0;
-            const char* packet_ptr = receiver.receive(len);
+            auto payload = receiver.receive();
 
-            if (!packet_ptr) {
+            if (payload.empty()) {
                 _mm_pause();
                 continue;
             }
@@ -36,7 +35,7 @@ public:
                 _mm_pause();
             };
 
-            if (parser.parse(packet_ptr, len, slot))  {
+            if (parser.parse(payload, slot))  {
                 ringBuffer.publish();
             }
         }   

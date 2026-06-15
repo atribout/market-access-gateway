@@ -1,14 +1,16 @@
 #pragma once
 #include <bit>
-#include <cstddef>
+#include <span>
 #include "SimProtocol.h"
 #include "Messages.h"
 
 class SimParser {
 public:
-    inline bool parse(const char* packet_ptr, size_t len, QueueItem* slot) {
-        if (len < sizeof(Sim::PacketHeader)) return false;
+    bool parse(std::span<const uint8_t> payload, QueueItem* slot) {
+        auto len = payload.size();
+        if (len < sizeof(Sim::PacketHeader)) [[unlikely]] return false;
 
+        const uint8_t* packet_ptr = payload.data();
         const Sim::PacketHeader* header = reinterpret_cast<const Sim::PacketHeader*>(packet_ptr);
 
         if (header->type == MsgType::AddOrder && len >= sizeof(Sim::AddOrderMsg)) {

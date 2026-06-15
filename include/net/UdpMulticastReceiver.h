@@ -1,22 +1,11 @@
-#include <fstream>
+#pragma once
+
 #include <print>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
-
-class PcapReceiver {
-    std::ifstream file;
-public:
-    explicit PcapReceiver(const std::string& filename) : file(filename, std::ios::binary) {
-        if (!file.is_open()) {
-            std::println(stderr, "[PCAP] Failed to open");
-        }
-    }
-    
-    inline const char* receive(size_t& len) {
-        return nullptr;
-    }
-};
+#include <span>
+#include <cstdint>
 
 class UdpMulticastReceiver {
 private:
@@ -26,7 +15,7 @@ private:
 
     struct mmsghdr msgs[BATCH_SIZE];
     struct iovec iovecs[BATCH_SIZE];
-    char buffers[BATCH_SIZE][BUF_LEN];
+    uint8_t buffers[BATCH_SIZE][BUF_LEN];
 
     int current_batch_size = 0;
     int current_msg_idx = 0;
@@ -57,7 +46,6 @@ public:
             iovecs[i].iov_base = buffers[i];
             iovecs[i].iov_len = BUF_LEN;
             
-            msgs[i] = mmsghdr{};
             msgs[i].msg_hdr.msg_iov = &iovecs[i];
             msgs[i].msg_hdr.msg_iovlen = 1;
         }
@@ -72,18 +60,17 @@ public:
     UdpMulticastReceiver(UdpMulticastReceiver&&) = delete;
     UdpMulticastReceiver& operator=(UdpMulticastReceiver&&) = delete;
     
-    inline const char* receive(size_t& out_len) {
+    std::span<const uint8_t> receive() noexcept {
         if (current_msg_idx >= current_batch_size) {
             current_batch_size = recvmmsg(sockfd, msgs, BATCH_SIZE, MSG_DONTWAIT, NULL);
             if (current_batch_size <= 0) {
                 current_batch_size = 0;
-                out_len = 0;
-                return nullptr;
+                return {};
             }
             current_msg_idx = 0;
         }
 
-        out_len = msgs[current_msg_idx].msg_len;
-        return buffers[current_msg_idx++];
+        size_t len = msgs[current_msg_idx].msg_len;
+        return {buffers[current_msg_idx++], len};
     }
 };
