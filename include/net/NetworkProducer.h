@@ -5,6 +5,7 @@
 #include "Utils.h"
 #include "RingBuffer.h"
 #include "Globals.h"
+#include "net/BinaryItchReceiver.h"
 
 template<MessageParserConcept ParserT, PacketReceiverConcept ReceiverT>
 class NetworkProducer {
@@ -26,8 +27,14 @@ public:
             auto payload = receiver.receive();
 
             if (payload.empty()) {
-                _mm_pause();
-                continue;
+                if constexpr (std::is_same_v<ReceiverT, BinaryItchReceiver>) {
+                    std::println("End of ITCH file reached.");
+                    break;
+                }
+                else {
+                    _mm_pause();
+                    continue;
+                }
             }
 
             QueueItem* slot = nullptr;

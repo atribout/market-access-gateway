@@ -11,6 +11,8 @@
 #include "net/NetworkProducer.h"
 #include "net/UdpMulticastReceiver.h"
 #include "net/SimParser.h"
+#include "net/BinaryItchReceiver.h"
+#include "net/NasdaqItchParser.h"
 #include "Messages.h"
 #include "RingBuffer.h"
 #include "TSCClock.h"
@@ -113,11 +115,13 @@ int main(int argc, char* argv[])  {
 
     std::thread consumer(consumer_thread);
 
-    if (mode == "pcap") {
-        std::println("=== Starting in REPLAY mode (PCAP) ===");
-        // PcapReceiver pcapRecv("nasdaq_sample.pcap");
-        // NetworkProducer<PcapReceiver> producer(pcapRecv);
-        // producer.run();
+    if (mode == "file") {
+        std::println("=== Starting in REPLAY mode (Binary ITCH) ===");
+        NetworkProducer<NasdaqItchParser, BinaryItchReceiver> producer(NasdaqItchParser{}, "../test_sample.bin");
+        producer.run();
+
+        std::println("Producer finished. Shutting down consumer...");
+        running = false;
     }
     else {
         std::println("=== Starting in LIVE mode (UDP Multicast) ===");

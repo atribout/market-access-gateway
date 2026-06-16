@@ -6,7 +6,7 @@
 
 class BboBitset {
 private:
-    static constexpr int32_t MAX_PRICE{100000};
+    static constexpr int32_t MAX_PRICE{2000000};
 
     static constexpr size_t L0_SIZE = (MAX_PRICE / 64) + 1;
     static constexpr size_t L1_SIZE = (L0_SIZE / 64) + 1;

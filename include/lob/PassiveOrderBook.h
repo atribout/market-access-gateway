@@ -13,8 +13,7 @@ private:
         uint32_t totalVolume = 0;
     };
 
-    // We assume prices between 0 and 100,000.
-    static constexpr size_t MAX_PRICE = 100000;
+    static constexpr size_t MAX_PRICE = 2000000;
     std::vector<Level> bids;
     std::vector<Level> asks;
 
