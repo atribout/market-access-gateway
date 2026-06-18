@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <emmintrin.h>
+#include <memory>
 #include <thread>
 #include <atomic>
 #include <cstring>
@@ -28,7 +29,7 @@ void consumer_thread()
     std::println("Engine started (waiting for data)...");
 
     EmptyListener listener;
-    MarketManager<EmptyListener> market(listener);
+    auto market = std::make_unique<MarketManager<EmptyListener>>(listener);
 
     // We store the latencies to print the percentiles later
     std::vector<uint64_t> samples;
@@ -64,13 +65,13 @@ void consumer_thread()
             start_cycles = __rdtscp(&dummy);
             // --- CRITICAL ZONE ---
             if(item->type == MsgType::AddOrder) {
-                market.onAddOrder(item->instrumentId, item->id, item->price, item->quantity, item->side);
+                market->onAddOrder(item->instrumentId, item->id, item->price, item->quantity, item->side);
             }
             else if (item->type == MsgType::CancelOrder) {
-                market.onCancelOrder(item->id);
+                market->onCancelOrder(item->id);
             }
             else if (item->type == MsgType::ExecutedOrder) {
-                market.onOrderExecuted(item->id, item->quantity);
+                market->onOrderExecuted(item->id, item->quantity);
             }
             // -----------------------------------------
 

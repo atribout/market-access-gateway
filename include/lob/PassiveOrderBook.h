@@ -3,6 +3,7 @@
 #include "Order.h"
 #include "OrderPool.h"
 #include "BboBitset.h"
+#include "PagedPriceArray.h"
 
 class PassiveOrderBook {
 private:
@@ -14,19 +15,18 @@ private:
     };
 
     static constexpr size_t MAX_PRICE = 2000000;
-    std::vector<Level> bids;
-    std::vector<Level> asks;
+    PagedPriceArray<Level, MAX_PRICE> bids;
+    PagedPriceArray<Level, MAX_PRICE> asks;
 
     BboBitset bidPrices;
     BboBitset askPrices;
 
 public:
-
-    PassiveOrderBook(): bids(MAX_PRICE + 1), asks(MAX_PRICE + 1) {};
+    PassiveOrderBook() = default;
 
     uint32_t addOrder(int32_t idx, OrderPool& pool) {
         Order& order = pool.get(idx);
-        std::vector<Level>& bookSide = (order.side == Side::Buy) ? bids: asks;
+        auto& bookSide = (order.side == Side::Buy) ? bids: asks;
         Level& level = bookSide[order.price];
                 
         if (level.head == -1) {
@@ -51,7 +51,7 @@ public:
 
     uint32_t removeOrder(uint32_t idx, OrderPool& pool) {
         Order& order = pool.get(idx);
-        std::vector<Level>& bookSide = (order.side == Side::Buy) ? bids: asks;
+        auto& bookSide = (order.side == Side::Buy) ? bids: asks;
         Level& level = bookSide[order.price];
 
         if (order.prev != -1) {
@@ -80,7 +80,7 @@ public:
     int getBestAsk() const { return askPrices.getBestAsk(); }
 
     uint32_t reduceVolume(Order& order, uint32_t qty) {
-        std::vector<Level>& bookSide = (order.side == Side::Buy) ? bids: asks;
+        auto& bookSide = (order.side == Side::Buy) ? bids: asks;
         bookSide[order.price].totalVolume -= qty;
         return bookSide[order.price].totalVolume;
     }
