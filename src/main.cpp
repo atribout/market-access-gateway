@@ -18,7 +18,7 @@
 #include "RingBuffer.h"
 #include "TSCClock.h"
 
-constexpr size_t BUFFER_SIZE = 4096;
+constexpr size_t BUFFER_SIZE = 1048576;
 RingBuffer<QueueItem, BUFFER_SIZE> ringBuffer;
 std::atomic<bool> running{true};
 
@@ -44,7 +44,7 @@ void consumer_thread()
     unsigned int dummy;
     uint64_t start_cycles, end_cycles;
 
-    while (running) 
+    while (running || ringBuffer.getSize() > 0) 
     {
         size_t currentDepth = ringBuffer.getSize();
         if (currentDepth > maxQueueDepth) maxQueueDepth = currentDepth;

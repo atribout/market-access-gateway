@@ -1,5 +1,4 @@
 #pragma once
-#include <vector>
 #include "Order.h"
 #include "OrderPool.h"
 #include "BboBitset.h"

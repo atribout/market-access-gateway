@@ -3,5 +3,5 @@
 #include "RingBuffer.h"
 #include "Messages.h"
 
-extern RingBuffer<QueueItem, 4096> ringBuffer;
+extern RingBuffer<QueueItem, 1048576> ringBuffer;
 extern std::atomic<bool> running;
