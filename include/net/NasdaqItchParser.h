@@ -9,16 +9,34 @@ class NasdaqItchParser {
 private:
     mutable uint64_t internalSeqNum{0};
 
-    constexpr uint16_t mapTickerToInstrument(uint64_t tickerInt) const noexcept {
-        switch (tickerInt) {
-            case 2314885530818465365ULL: return 0; // UN
-            case 2314885530821544274ULL: return 1; // RIO
-            case 2314885530821607763ULL: return 2; // SAP
-            case 2314885530821809742ULL: return 3; // NVS
-            case 2314885530821543236ULL: return 4; // DEO
-            default: return 999; // Ignore
+    struct TickerEntry {
+        uint64_t ticker{0};
+        uint16_t id{999};
+    };
+
+    static constexpr size_t TICKER_CAPACITY = 2048;
+    static constexpr size_t TICKER_MASK = TICKER_CAPACITY - 1;
+
+    mutable std::array<TickerEntry, TICKER_CAPACITY> tickerMap{};
+    mutable uint16_t nextInstrumentId{0};
+
+    inline uint16_t mapTickerToInstrument(uint64_t tickerInt) const noexcept {
+        size_t idx = (tickerInt ^ (tickerInt >> 27)) & TICKER_MASK;
+        
+        while (tickerMap[idx].ticker != 0) {
+            if (tickerMap[idx].ticker == tickerInt) {
+                return tickerMap[idx].id;
+            }
+            idx = (idx + 1) & TICKER_MASK;
         }
+        
+        if (nextInstrumentId >= 1000) [[unlikely]] return 999; 
+        
+        tickerMap[idx].ticker = tickerInt;
+        tickerMap[idx].id = nextInstrumentId++;
+        return tickerMap[idx].id;
     }
+
 public:
     bool parse(std::span<const uint8_t> payload, QueueItem* slot) const noexcept {
         if (payload.empty()) [[unlikely]] return false;
